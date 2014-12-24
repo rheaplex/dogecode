@@ -1,0 +1,70 @@
+#!/bin/env python3
+# -*- mode: python -*-
+
+# dcrun - Fetch and execute programs from the Dogeparty blockchain.
+# Copyright (C) 2014 Rob Myers rob@robmyers.org
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or 
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from optparse import OptionParser
+import sys
+
+import dogecode.brainfuck, dogecode.network, dogecode.translation
+
+def getopts():
+    usage = "usage: %prog [options] source_address"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-r", "--rpc-host", dest="host", default="localhost",
+                      help="the Dogeparty json-rpc host, probably localhost")
+    parser.add_option("-p", "--rpc-port", dest="port", default="5000",
+                      help="the Dogeparty json-rpc port")
+    parser.add_option("-u", "--rpc-user", dest="user", default="rpc",
+                      help="the Dogeparty json-rpc username")
+    parser.add_option("-w", "--rpc-password", dest="password", default=None,
+                      help="the Dogeparty json-rpc password")
+    parser.add_option("-d", "--dump-code",
+                      action="store_true", dest="dump", default=False,
+                      help="dump the program code to STDERR")
+    opts, args = parser.parse_args()
+    if(len(args) != 1):
+        parser.error("must supply source_address")
+    return opts, args
+
+def main():
+    (opts, args) = getopts()
+    address = args[0]
+    #TODO: make sure address is valid
+    dump_code = opts.dump
+    user = opts.user
+    password = opts.password
+    if not password:
+        print("Enter Dogeparty json-rpc password:")
+        password = sys.stdin.readline()
+    host = opts.host
+    port = opts.port
+    api = dogecode.network.DogepartyApi(user, password, host, port)
+    tokens = api.token_transactions_for_address(address)
+    pairs = dogecode.translation.json_token_amounts_to_pairs(tokens)
+    code = dogecode.translation.token_runs_to_code(pairs)
+    if dump_code:
+        print(code, file=sys.stderr)
+    try:
+        dogecode.brainfuck.evaluate(code)
+    except Exception as e:
+        print("Error evaluating program after fetching.", file=sys.stderr)
+        print("Program was: {}".format(code), file=sys.stderr)
+        print("Exception was: {}".format(e), file=sys.stderr)
+        
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,135 @@
+#! /usr/bin/env python3
+# -*- mode: python -*-
+
+# dcsend - Upload tokens to the Dogeparty blockchain.
+# Copyright (C) 2014 Rob Myers rob@robmyers.org
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or 
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import csv, sys, time
+from optparse import OptionParser
+from retrying import retry
+
+import dogecode.network, dogecode.translation
+
+# Send poll wait time in seconds
+POLL_WAIT_TIME = 10
+POLL_MAX_WAITS = 100
+
+class Uploader(object):
+    """A class to manage the uploading of a program to an addess"""
+
+    #TODO: Allow restarting upload
+    #TODO: Allow uploading to queue
+    #TODO: When waiting for send to synch, check if sent and received
+    #      token list is same length but has different contents,
+    #      fail if so.
+    
+    def __init__(self, api, from_account, to_account, csvfile, fee=0):
+        """Record the information needed to perform the upload"""
+        self.api = api
+        self.from_account = from_account
+        self.to_account = to_account
+        self.reader = csv.reader(csvfile)
+        self.fee = fee
+        self.sent_tokens = dogecode.translation.TokenList()
+        
+    def current_receiving_account_token_list(self):
+        """Get the current state of tokens sent to the account"""
+        json = self.api.token_transactions_for_address(self.to_account)
+        token_list = dogecode.translation.TokenList()
+        token_list.from_json(json)
+        return token_list
+
+    def received_tokens_match_sent_tokens(self):
+        """Check whether the tokens on the receiving account match the sent tokens"""
+        receiving_tokens = self.current_receiving_account_token_list()
+        return self.sent_tokens.equals(receiving_tokens)
+
+    def wait_for_account_state_to_match_sent_tokens(self):
+        """Poll Dogepartyd until the tokens on the receiving account match the sent tokens"""
+        sys.stderr.write("Waiting for token state to synch")
+        sys.stderr.flush()
+        try_count = 0
+        while not self.received_tokens_match_sent_tokens():
+            sys.stderr.write(".")
+            sys.stderr.flush()
+            time.sleep(POLL_WAIT_TIME)
+            try_count += 1
+            if try_count > POLL_MAX_WAITS:
+                print("Too many failures.", file=sys.stderr)
+                sys.exit(2)
+        print("", file=sys.stderr)
+    
+    def send_row(self, row):
+        """Send the token run described by the row"""
+        token, amount = row
+        result = self.api.send_token(self.from_account, self.to_account, token, amount, self.fee)
+        if not result:
+            raise Exception("Error calling the api.")
+        self.sent_tokens.append(token, amount)
+
+    def send(self):
+        """Send all the tokens, waiting for each send to be included in
+           the blockchain"""
+        for row in self.reader:
+            self.wait_for_account_state_to_match_sent_tokens()
+            print("Send {}: {}".format(self.reader.line_num, ",".join(row)), file=sys.stderr)
+            self.send_row(row)
+    
+def getopts():
+    usage = "usage: %prog [options] from_account to_account csv_filename"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-f", "--fee", dest="fee", default="0",
+                      help="the fee for each send")
+    parser.add_option("-r", "--rpc-host", dest="host", default="localhost",
+                      help="the Dogeparty json-rpc host, probably localhost")
+    parser.add_option("-p", "--rpc-port", dest="port", default="5000",
+                      help="the Dogeparty json-rpc port")
+    parser.add_option("-u", "--rpc-user", dest="user", default="rpc",
+                      help="the Dogeparty json-rpc username")
+    parser.add_option("-w", "--rpc-password", dest="password", default=None,
+                      help="the Dogeparty json-rpc password")
+    opts, args = parser.parse_args()
+    if(len(args) != 3):
+        parser.error("must supply from_account to_account csv_filename")
+    return opts, args
+
+def main():
+    (opts, args) = getopts()
+    #TODO: make sure address is valid
+    user = opts.user
+    password = opts.password
+    if not password:
+        print("Enter Dogeparty json-rpc password:", file=sys.stderr)
+        password = sys.stdin.readline()
+    host = opts.host
+    port = opts.port
+    fee = int(opts.fee)
+    from_account = args[0]
+    to_account = args[1]
+    csv_filename = args[2]
+    print("Sending lots of tokens from {} to {}.".format(from_account,
+                                                         to_account),
+          file=sys.stderr)
+    print("Make sure you really want to do this.", file=sys.stderr)
+    api = dogecode.network.DogepartyApi(user, password, host, port)
+    #TODO: Check the sending account has sufficient tokens and fees
+    #TODO: Chech the receiving account has no tokens (or a flag is set)
+    with open(csv_filename, 'r') as csvfile:
+        uploader = Uploader(api, from_account, to_account, csvfile, fee)
+        uploader.send()
+        
+if __name__ == "__main__":
+    main()

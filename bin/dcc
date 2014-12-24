@@ -1,0 +1,67 @@
+#!/bin/env python3
+# -*- mode: python -*-
+
+# dcc - Compile brainfuck code to a csv file specifying Dogeparty sends
+# Copyright (C) 2014 Rob Myers rob@robmyers.org
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or 
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from optparse import OptionParser
+import sys
+
+import dogecode.translation
+
+def getopts():
+    usage = "usage: %prog [options] source_file"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-n", "--nocomment",
+                      action="store_false", dest="strip", default=True,
+                      help="don't skip the first [] as a comment")
+    parser.add_option("-d", "--dontrun",
+                      action="store_false", dest="run", default=True,
+                      help="don't run the code locally to check it executes")
+    parser.add_option("-o", "--outfile", dest="outfilename", default="-",
+                      help="write compiled csv to OUTFILENAME", metavar="FILE")
+    opts, args = parser.parse_args()
+    if(len(args) != 1):
+        parser.error("must supply source_file")
+    return opts, args
+
+def main():
+    (opts, args) = getopts()
+    outfile = sys.stdout
+    if opts.outfilename != "-":
+        try:
+            outfile = open(opts.outfilename, 'w')
+        except:
+            print("Couldn't open file {} .".format(opts.outfilename))
+            sys.exit(2)
+    strip_comment = opts.strip
+    run_code_locally = opts.run
+    source_filename = args[0]
+    try:
+        source_code = open(source_filename).read()
+    except:
+        print("Couldn't read file {} .".format(source_filename))
+        sys.exit(2)
+    #TODO: check account strings are valid
+    if run_code_locally:
+        #TODO: run the code locally
+        pass
+    dogecode.translation.source_to_tokens_csv(source_code,
+                                              outfile,
+                                              strip_comment)
+
+if __name__ == "__main__":
+    main()
