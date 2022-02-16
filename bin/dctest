@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: python -*-
 
-# dcc - Compile brainfuck code to a csv file specifying Dogeparty sends
+# dctest - Compile brainfuck code, decompile it, and run it to test it
 # Copyright (C) 2014 Rhea Myers
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 from optparse import OptionParser
 import sys
 
-import dogecode.translation
+import dogecode.brainfuck, dogecode.translation
 
 def getopts():
     usage = "usage: %prog [options] source_file"
@@ -28,8 +28,6 @@ def getopts():
     parser.add_option("-n", "--nocomment",
                       action="store_false", dest="strip", default=True,
                       help="don't skip the first [] as a comment")
-    parser.add_option("-o", "--outfile", dest="outfilename", default="-",
-                      help="write compiled csv to OUTFILENAME", metavar="FILE")
     opts, args = parser.parse_args()
     if(len(args) != 1):
         parser.error("must supply source_file")
@@ -37,25 +35,23 @@ def getopts():
 
 def main():
     (opts, args) = getopts()
-    outfile = sys.stdout
-    if opts.outfilename != "-":
-        try:
-            outfile = open(opts.outfilename, 'w')
-        except:
-            print("Couldn't open ouptut file {}".format(opts.outfilename),
-                  file=sys.stderr)
-            sys.exit(2)
     strip_comment = opts.strip
     source_filename = args[0]
+    print("Reading source file {}".format(source_filename), file=sys.stderr)
     try:
         source_code = open(source_filename).read()
+        print("OK", file=sys.stderr)
     except:
-        print("Couldn't read input file {}".format(source_filename),
-              file=sys.stderr)
+        print("Couldn't read file {}".format(source_filename), file=sys.stderr)
         sys.exit(2)
-    dogecode.translation.source_to_tokens_csv(source_code,
-                                              outfile,
-                                              strip_comment)
-
+    tokens = dogecode.translation.source_to_tokens(source_code, strip_comment)
+    decoded_code = dogecode.translation.token_runs_to_code(tokens)
+    try:
+        dogecode.brainfuck.evaluate(decoded_code)
+    except Exception as e:
+        print("Error.", file=sys.stderr)
+        print("Decoded program was: {}".format(decoded_code), file=sys.stderr)
+        print("Exception was: {}".format(e), file=sys.stderr)
+    
 if __name__ == "__main__":
     main()

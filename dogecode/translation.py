@@ -1,5 +1,5 @@
 # translation.py - Translate between Brainfuck commands and Dogeparty tokens
-# Copyright (C) 2014 Rob Myers rob@robmyers.org
+# Copyright (C) 2014 Rhea Myers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -103,13 +103,22 @@ def token_runs_to_code(token_pairs):
         code += token_to_run(pair)
     return code
 
-def json_token_amounts_to_pairs(tokens_json):
-    """Extract a list of (TOKEN,N) pairs from the json list of token sends"""
+def json_token_amounts_to_pairs(address, tokens_json):
+    """Extract a list of (TOKEN,N) pairs from the json list of token sends.
+       Sends must contain 'destination', 'asset' and 'quantity'.
+       'quantity' can be an integer or a string representing an integer."""
     pairs = []
     for send in tokens_json:
-        if send["status"] == "valid":
-            pairs.append((send["asset"], send["quantity"]))
+        if send["status"] == "valid" and send["destination"] == address:
+            pairs.append((send["asset"], int(send["quantity"])))
     return pairs
+
+def json_to_code(address, tokens_json, should_reverse=False):
+    """Convert a json transaction list to a code string"""
+    token_pairs = json_token_amounts_to_pairs(address, tokens_json)
+    if should_reverse:
+        token_pairs.reverse()
+    return token_runs_to_code(token_pairs)
 
 
 ################################################################################

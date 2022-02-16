@@ -2,7 +2,7 @@
 #
 # Brainfuck Interpreter
 # Copyright 2011 Sebastian Kaspari
-# Trivial mods 2014 Rob Myers
+# Trivial mods 2014 Rhea Myers
 #
 # Usage: ./brainfuck.py [FILE]
 

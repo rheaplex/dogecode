@@ -1,14 +1,14 @@
 Dogecode White Paper v0.1
 =========================
 
-__Rob Myers <rob@robmyers.org>__
+__Rhea Myers__
 
 __23-12-2014__
 
 Overview
 ========
 
-Dogecode (name to be finalized) is a system for representing computer programs using sequences of Dogeparty tokens in order to store, send, and execute their code via the Dogecoin blockchain.
+Dogecode is a system for representing computer programs using sequences of Dogeparty tokens in order to store, send, and execute their code via the Dogecoin blockchain.
 
 Tokens
 ======

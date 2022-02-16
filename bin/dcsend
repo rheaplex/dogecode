@@ -2,7 +2,7 @@
 # -*- mode: python -*-
 
 # dcsend - Upload tokens to the Dogeparty blockchain.
-# Copyright (C) 2014 Rob Myers rob@robmyers.org
+# Copyright (C) 2014 Rhea Myers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -75,7 +75,8 @@ class Uploader(object):
     def send_row(self, row):
         """Send the token run described by the row"""
         token, amount = row
-        result = self.api.send_token(self.from_account, self.to_account, token, amount, self.fee)
+        result = self.api.send_token(self.from_account, self.to_account,
+                                     token, amount, self.fee)
         if not result:
             raise Exception("Error calling the api.")
         self.sent_tokens.append(token, amount)
@@ -85,7 +86,8 @@ class Uploader(object):
            the blockchain"""
         for row in self.reader:
             self.wait_for_account_state_to_match_sent_tokens()
-            print("Send {}: {}".format(self.reader.line_num, ",".join(row)), file=sys.stderr)
+            print("Send {}: {}".format(self.reader.line_num, ",".join(row)),
+                  file=sys.stderr)
             self.send_row(row)
     
 def getopts():
@@ -120,7 +122,7 @@ def main():
     from_account = args[0]
     to_account = args[1]
     csv_filename = args[2]
-    print("Sending lots of tokens from {} to {}.".format(from_account,
+    print("Sending lots of tokens from {} to {}".format(from_account,
                                                          to_account),
           file=sys.stderr)
     print("Make sure you really want to do this.", file=sys.stderr)

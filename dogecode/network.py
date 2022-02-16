@@ -1,5 +1,5 @@
 # network.py - Accessing the dogepartyd json-rpc api.
-# Copyright (C) 2014 Rob Myers rob@robmyers.org
+# Copyright (C) 2014 Rhea Myers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

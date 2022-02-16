@@ -10,16 +10,15 @@ def read(fname):
 
 setup(
     name = "dogecode",
-    version = "0.0.1",
-    author = "Rob Myers",
-    author_email = "rob@robmyers.org",
+    version = "0.0.3",
+    author = "Rhea Myers",
     description = ("Representing and running programs as Dogeparty tokens."),
     license = "GPLv3+",
     keywords = "dogeparty",
-    url = "http://robmyers.org/dogecode",
+    url = "https://rhea.art/dogecode",
     packages=['dogecode'],
-    scripts=['bin/dcc', 'bin/dcsend', 'bin/dcrun'],
-    long_description=read('README'),
+    scripts=['bin/dcc', 'bin/dcsend', 'bin/dcrun','bin/dcrunw', 'bin/dctest'],
+    long_description=read('README.md'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Development",
